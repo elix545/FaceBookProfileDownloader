@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  facebook-downloader:
+    build: .
+    container_name: facebook-profile-downloader
+    volumes:
+      - ./descargas:/app/descargas
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    stdin_open: true
+    tty: true 
