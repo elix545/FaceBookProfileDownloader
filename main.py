@@ -9,7 +9,7 @@ from pathlib import Path
 from rich import print
 from playwright.sync_api import sync_playwright
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import re
 import logging
 import time
@@ -183,7 +183,7 @@ def descargar(
                 page.wait_for_timeout(5000)
                 
                 # Extraer metadatos de la foto
-                photo_id = photo_url.rstrip('/').split('/')[-1]
+                photo_id = get_photo_id_from_url(photo_url)
                 meta = {}
                 try:
                     # Descripción
@@ -299,7 +299,7 @@ def descargar(
                 page.wait_for_timeout(5000)
                 
                 # Extraer metadatos del video
-                video_id = video_url.rstrip('/').split('/')[-1]
+                video_id = get_video_id_from_url(video_url)
                 meta = {}
                 try:
                     # Descripción
@@ -594,6 +594,45 @@ def get_high_resolution_url(url):
         return base_url
     except:
         return url
+
+def get_photo_id_from_url(url):
+    """Genera un ID único y sanitizado para fotos basado en la URL."""
+    try:
+        parsed = urlparse(url)
+        # Extraer fbid de los parámetros de query
+        query_params = parse_qs(parsed.query)
+        fbid = query_params.get('fbid', ['unknown'])[0]
+        set_param = query_params.get('set', ['unknown'])[0]
+        
+        # Crear un ID único combinando fbid y set
+        photo_id = f"photo_{fbid}_{set_param}"
+        return sanitize_filename(photo_id)
+    except:
+        # Fallback: usar hash de la URL completa
+        import hashlib
+        url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+        return f"photo_{url_hash}"
+
+def get_video_id_from_url(url):
+    """Genera un ID único y sanitizado para videos basado en la URL."""
+    try:
+        parsed = urlparse(url)
+        # Extraer el último segmento del path
+        path_segments = [seg for seg in parsed.path.split('/') if seg]
+        if path_segments:
+            video_id = path_segments[-1]
+        else:
+            # Si no hay path, usar hash de la URL
+            import hashlib
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+            video_id = f"video_{url_hash}"
+        
+        return sanitize_filename(video_id)
+    except:
+        # Fallback: usar hash de la URL completa
+        import hashlib
+        url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+        return f"video_{url_hash}"
 
 if __name__ == "__main__":
     app() 
